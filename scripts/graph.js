@@ -2,6 +2,12 @@ const graphElement = document.getElementById('graph');
 let width = graphElement.offsetWidth || window.innerWidth;  // Fallback for proper initialization
 let height = graphElement.offsetHeight || window.innerHeight;  // Fallback for proper initialization
 
+// Function to calculate node size based on screen size
+function getNodeSize(category) {
+    const baseSize = (width < 400) ? 15 : (width < 600) ? 20 : 30;  // Smaller base sizes for narrower screens
+    return category === "Technology" ? baseSize * 2 : baseSize;
+}
+
 // Create the SVG element with 100% width and height
 const svg = d3.select("#graph")
     .append("svg")
@@ -12,10 +18,10 @@ const svg = d3.select("#graph")
 
 // Define the simulation with forces
 const simulation = d3.forceSimulation()
-    .force("link", d3.forceLink().id(d => d.id).distance(200))  // Increased link distance
-    .force("charge", d3.forceManyBody().strength(-500))  // Stronger negative to spread nodes further apart
-    .force("center", d3.forceCenter(width / 2, height / 2))  // Centering force
-    .force("collide", d3.forceCollide().radius(d => (d.category === "Technology" ? 60 : 30)));  // Larger collision radius for "Technology" nodes
+    .force("link", d3.forceLink().id(d => d.id).distance(width < 600 ? 100 : 200))  // Shorter link distance for mobile
+    .force("charge", d3.forceManyBody().strength(-500))
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("collide", d3.forceCollide().radius(d => getNodeSize(d.category)));
 
 // Define colors for node categories
 const color = d3.scaleOrdinal()
@@ -27,11 +33,12 @@ d3.json("data/normalizedTech.json").then(function(data) {
     // Filter out "Vendor" nodes
     const filteredNodes = data.nodes.filter(d => d.category !== "Vendor");
 
-    // Filter out links that connect to "Vendor" nodes
-    const filteredLinks = data.links.filter(d => 
-        filteredNodes.find(node => node.id === d.source) &&
-        filteredNodes.find(node => node.id === d.target)
-    );
+    // Create a map of node IDs for quick lookup
+    const nodeMap = new Map(filteredNodes.map(d => [d.id, d]));
+
+    // Filter out links that connect to "Vendor" nodes and ensure both source and target nodes exist
+    const filteredLinks = data.links.filter(d => nodeMap.has(d.source) && nodeMap.has(d.target));
+
 
     // Create links (edges)
     const link = svg.append("g")
@@ -50,7 +57,7 @@ d3.json("data/normalizedTech.json").then(function(data) {
         .data(filteredNodes)
         .enter()
         .append("circle")
-        .attr("r", d => d.category === "Technology" ? 30 : 15)  // Larger radius for "Technology"
+        .attr("r", d => getNodeSize(d.category))  // Dynamic node size
         .attr("fill", d => color(d.category))
         .call(d3.drag()
             .on("start", dragStarted)
@@ -64,9 +71,9 @@ d3.json("data/normalizedTech.json").then(function(data) {
         .data(filteredNodes)
         .enter()
         .append("text")
-        .attr("dy", 0)
-        .attr("dx", 30)
-        .style("font-size", "18px")  // Adjust font size here
+        .attr("dy", 3)
+        .attr("dx", 6)
+        .style("font-size", width < 600 ? "12px" : "18px")  // Smaller font size for mobile
         .text(d => d.id);
 
     // Tooltip on nodes
@@ -74,23 +81,28 @@ d3.json("data/normalizedTech.json").then(function(data) {
         .text(d => `${d.id} (${d.category})`);
 
     // Update simulation on each tick (to redraw the layout)
-    simulation.nodes(filteredNodes).on("tick", () => {
+    simulation
+        .nodes(filteredNodes)
+        .on("tick", ticked);
+
+    simulation.force("link")
+        .links(data.links);
+
+    function ticked() {
         link
-            .attr("x1", d => Math.max(50, Math.min(width - 50, d.source.x)))
-            .attr("y1", d => Math.max(50, Math.min(height - 50, d.source.y)))
-            .attr("x2", d => Math.max(50, Math.min(width - 50, d.target.x)))
-            .attr("y2", d => Math.max(50, Math.min(height - 50, d.target.y)));
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
 
         node
-            .attr("cx", d => Math.max(50, Math.min(width - 50, d.x)))
-            .attr("cy", d => Math.max(50, Math.min(height - 50, d.y)));
+            .attr("cx", d => d.x)
+            .attr("cy", d => d.y);
 
         label
-            .attr("x", d => Math.max(50, Math.min(width - 50, d.x)))
-            .attr("y", d => Math.max(50, Math.min(height - 50, d.y)));
-    });
-
-    simulation.force("link").links(filteredLinks);
+            .attr("x", d => d.x)
+            .attr("y", d => d.y);
+    }
 
     // Drag functionality
     function dragStarted(event, d) {

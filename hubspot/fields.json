@@ -1,0 +1,30 @@
+[
+    {
+      "name": "iframe_url",
+      "label": "iFrame URL",
+      "type": "text",
+      "default": "https://jolly-island-0ce377e0f.5.azurestaticapps.net/",
+      "required": true
+    },
+    {
+      "name": "iframe_height",
+      "label": "iFrame Height",
+      "type": "text",
+      "default": "800px",
+      "required": true
+    },
+    {
+      "name": "description_title",
+      "label": "Description Title",
+      "type": "text",
+      "default": "eClinical Technology Relationships",
+      "required": true
+    },
+    {
+      "name": "description_text",
+      "label": "Description Text",
+      "type": "textarea",
+      "default": "The eClinical Technology Relationship map is a visualization tool designed to highlight relationships between different clinical technologies such as IRT/RTSM, eCOA/ePRO, and others. Using this tool, individuals and companies can explore the overlaps and connections between various systems and determine where expanding or developing capabilities might be valuable. The visualization is built using D3.js and is tailored for clinical technology domains. If you disagree with the data that is presented in this map, please send us a message with your thoughts, or even better, fork the code in Github and modify the relationships for yourself!",
+      "required": true
+    }
+  ]
